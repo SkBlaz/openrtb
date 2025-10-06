@@ -182,6 +182,10 @@ Source : AdCOM [https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/maste
       <td>508</td>
       <td>Magnite Standard Audiences</td>
     </tr>
+	<tr>
+      <td>510</td>
+  	<td>Titan Segments</td>
+    </tr>
     <!-- 1plusX -->
     <tr>
       <td>525</td>
