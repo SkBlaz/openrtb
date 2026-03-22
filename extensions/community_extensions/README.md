@@ -58,9 +58,3 @@ See [extended-content-ids.md](extended-content-ids.md) for deatils.
 #### Notes
 
 See [seat-non-bid.md](seat-non-bid.md) for deatils.
-
-### Agentic Audiences
-
-#### Notes
-
-See [agentic-audiences.md](agentic-audiences.md) for details. Agentic Audiences (formerly UCP) defines how to pass vector-based embeddings—identity, contextual, and reinforcement signals—via `user.data` in OpenRTB bid requests. Reference implementation: [Prebid.js Agentic Audience Adapter](https://github.com/prebid/Prebid.js/pull/14626).
