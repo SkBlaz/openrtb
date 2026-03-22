@@ -1,6 +1,6 @@
 # Agentic Audiences in OpenRTB
 
-**Sponsors**: LiveRamp, IAB Tech Lab
+**Sponsors**: LiveRamp
 
 ## Overview
 
