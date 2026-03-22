@@ -8,9 +8,9 @@ Agentic Audiences (formerly the User Context Protocol/UCP) is an open standard t
 
 Rather than exchanging raw data points or text descriptions, Agentic Audiences leverages **embeddings**—compact, learned vector representations that efficiently encode complex signals in a privacy-preserving, interoperable format. This enables the sub-100ms response times required for real-time bidding.
 
-## Request Change
+## Extension Scope
 
-This community extension defines how Agentic Audiences embeddings are conveyed in OpenRTB bid requests. The extension uses the existing `Data` and `Segment` objects in `BidRequest.user.data`. Each data provider supplies one or more segment entries, where each entry is a vector embedding with metadata describing its type and model.
+Embeddings are conveyed in `BidRequest.user.data` using the existing `Data` and `Segment` objects. Each data provider contributes one `Data` object whose `segment` array contains one or more embedding entries. Each segment is a standard OpenRTB Segment with `id` and `name` for identification. The `Segment.ext` object carries the embedding and metadata that downstream systems need to interpret, filter, and use the vector—for example, for similarity matching or model-specific processing.
 
 ## Specification
 
@@ -32,6 +32,8 @@ When conveying Agentic Audiences embeddings, each element in the `segment` array
 | `ext` | object | Extension object containing Agentic Audiences attributes (see below). |
 
 ### Object: `Segment.ext` (Agentic Audiences)
+
+The `Segment.ext` object extends the standard Segment with Agentic Audiences attributes. It carries the embedding vector and metadata so that buyers can interpret the segment (e.g., by model or signal type), validate compatibility, and use the vector for scoring or similarity operations.
 
 | Attribute | Type | Description |
 | :-- | :-- | :-- |
@@ -122,10 +124,6 @@ When conveying Agentic Audiences embeddings, each element in the `segment` array
 ```
 
 *Note: Embedding vectors in examples are truncated for illustration; actual vectors are typically 256–1024 dimensions.*
-
-## Storage (Client-Side)
-
-When Agentic Audiences data is sourced from browser storage (localStorage or cookie), the stored value **must be base64-encoded** JSON. The decoded structure must include an `entries` array. Each entry is a segment object with `id`, `name`, and `ext` containing `ver`, `vector`, `model`, `dimension`, and `type`. The wire format sent in the bid request uses these entries as the `segment` array for that provider's `Data` object.
 
 ## Implementation Notes
 
