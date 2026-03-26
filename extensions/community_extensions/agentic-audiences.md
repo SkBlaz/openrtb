@@ -38,10 +38,62 @@ The `Segment.ext` object extends the standard Segment with Agentic Audiences att
 | Attribute | Type | Description |
 | :-- | :-- | :-- |
 | `ver` | string | Specification version for embedding schema compatibility (e.g., "1.0.0"). |
-| `vector` | number array | Vector embedding as a float array. Typically 256–1024 dimensions. |
+| `vector` | string | Base64-encoded embedding. The binary payload is Float32 values packed as [IEEE 754](https://standards.ieee.org/standard/754_2019.html) binary32 in **little-endian** byte order (4 bytes per value), concatenated, then standard Base64 (RFC 4648). The embedding length in values is **implicit**: after decoding, `byteLength` must be divisible by 4; number of floats = `byteLength / 4`. |
 | `model` | string | Model identifier that produced the embedding (e.g., "sbert-mini-ctx-001"). |
-| `dimension` | number | Vector dimension (length of the `vector` array). |
 | `type` | number array | Embedding type(s): 1 = identity, 2 = contextual, 3 = reinforcement. An entry may encode multiple signal types. |
+
+#### Vector encoding
+
+**Encode:** write each float as 4-byte little-endian Float32, concatenate, Base64-encode.
+
+**Decode:** Base64-decode to raw bytes; reject if `byteLength % 4 !== 0`. Read each 4-byte little-endian Float32 to obtain the float array.
+
+Example (JavaScript) — encode:
+
+```javascript
+const floats = [
+  1.2345678, -2.5, 0.0, 3.1415927, 12345.678,
+  -0.00012345, 42.42, -999.999, 0.000001, 987654.25
+];
+
+function floats32ToBase64(arr) {
+  const buffer = new ArrayBuffer(arr.length * 4);
+  const view = new DataView(buffer);
+  arr.forEach((x, i) => view.setFloat32(i * 4, x, true)); // little-endian
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  for (const b of bytes) binary += String.fromCharCode(b);
+  return btoa(binary);
+}
+
+/* floats32ToBase64(floats) →
+   UQaePwAAIMAAAAAA2w9JQLbmQEZbcgG5FK4pQvD/ecS9N4Y1ZCBxSQ== */
+```
+
+Example (JavaScript) — decode:
+
+```javascript
+function base64ToFloats32(b64) {
+  const binary = atob(b64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  if (bytes.byteLength % 4 !== 0) {
+    throw new Error("Invalid vector payload: byte length must be a multiple of 4");
+  }
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const out = [];
+  for (let i = 0; i < bytes.byteLength; i += 4) {
+    out.push(view.getFloat32(i, true)); // little-endian
+  }
+  return out;
+}
+
+/* base64ToFloats32("UQaePwAAIMAAAAAA2w9JQLbmQEZbcgG5FK4pQvD/ecS9N4Y1ZCBxSQ==")
+   → [
+     1.2345677614212036, -2.5, 0, 3.1415927410125732, 12345.677734375,
+     -0.0001234499941347167, 42.41999816894531, -999.9990234375, 9.999999974752427e-7, 987654.25
+   ] */
+```
 
 ### List: Embedding Type Values
 
@@ -67,9 +119,8 @@ The `Segment.ext` object extends the standard Segment with Agentic Audiences att
             "name": "descriptive-name",
             "ext": {
               "ver": "1.0.0",
-              "vector": [0.1, -0.2, 0.3],
+              "vector": "UQaePwAAIMAAAAAA2w9JQLbmQEZbcgG5FK4pQvD/ecS9N4Y1ZCBxSQ==",
               "model": "sbert-mini-ctx-001",
-              "dimension": 3,
               "type": [1, 2]
             }
           }
@@ -94,9 +145,8 @@ The `Segment.ext` object extends the standard Segment with Agentic Audiences att
             "name": "identity-contextual",
             "ext": {
               "ver": "1.0.0",
-              "vector": [0.1, -0.2, 0.3],
+              "vector": "UQaePwAAIMAAAAAA2w9JQLbmQEZbcgG5FK4pQvD/ecS9N4Y1ZCBxSQ==",
               "model": "sbert-mini-ctx-001",
-              "dimension": 3,
               "type": [1, 2]
             }
           }
@@ -110,9 +160,8 @@ The `Segment.ext` object extends the standard Segment with Agentic Audiences att
             "name": "contextual",
             "ext": {
               "ver": "1.0.0",
-              "vector": [0.5, 0.6, -0.1],
+              "vector": "AAAAP5qZGT/NzMy9",
               "model": "contextual-model-v1",
-              "dimension": 3,
               "type": [2]
             }
           }
@@ -123,11 +172,11 @@ The `Segment.ext` object extends the standard Segment with Agentic Audiences att
 }
 ```
 
-*Note: Embedding vectors in examples are truncated for illustration; actual vectors are typically 256–1024 dimensions.*
+*Note: Real embeddings are typically 256–1024 Float32 values; the longer `vector` example encodes 10 floats. Length in floats is always `(Base64-decoded byte length) / 4`.*
 
 ## Implementation Notes
 
-- **Vector dimensions**: Embedding vectors are typically 256–1024 dimensions. Implementers should agree on dimension and vector-space alignment when interoperating across providers.
+- **Vector length**: Embeddings typically contain 256–1024 Float32 values. Implementers should agree on expected length and vector-space alignment when interoperating across producers and consumers. Consumers derive length from the decoded payload and should reject payloads whose byte length is not a multiple of 4.
 - **Privacy**: Embeddings encode semantic meaning without exposing raw user data. Implementers must ensure appropriate consent and data handling policies are followed.
 - **Model interoperability**: The `model` field enables downstream systems to select compatible embeddings. Similarity computations are meaningful only within the same model/vector space.
 
