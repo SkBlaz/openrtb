@@ -38,7 +38,8 @@ The `Segment.ext` object extends the standard Segment with Agentic Audiences att
 | Attribute | Type | Description |
 | :-- | :-- | :-- |
 | `ver` | string | Specification version for embedding schema compatibility (e.g., "1.0.0"). |
-| `vector` | string | Base64-encoded embedding. The binary payload is Float32 values packed as [IEEE 754](https://standards.ieee.org/standard/754_2019.html) binary32 in **little-endian** byte order (4 bytes per value), concatenated, then standard Base64 (RFC 4648). The embedding length in values is **implicit**: after decoding, `byteLength` must be divisible by 4; number of floats = `byteLength / 4`. |
+| `vector` | string | Base64-encoded embedding. The binary payload is Float32 values packed as [IEEE 754](https://standards.ieee.org/standard/754_2019.html) binary32 in **little-endian** byte order (4 bytes per value), concatenated, then standard Base64 (RFC 4648). |
+| `dimension` | number | Number of Float32 values in the embedding. Must equal `(Base64-decoded byte length) / 4`. The decoded byte length must be divisible by 4. |
 | `model` | string | Model identifier that produced the embedding (e.g., "sbert-mini-ctx-001"). |
 | `type` | number array | Embedding type(s): 1 = identity, 2 = contextual, 3 = reinforcement. An entry may encode multiple signal types. |
 
@@ -46,7 +47,7 @@ The `Segment.ext` object extends the standard Segment with Agentic Audiences att
 
 **Encode:** write each float as 4-byte little-endian Float32, concatenate, Base64-encode.
 
-**Decode:** Base64-decode to raw bytes; reject if `byteLength % 4 !== 0`. Read each 4-byte little-endian Float32 to obtain the float array.
+**Decode:** Base64-decode to raw bytes; reject if `byteLength % 4 !== 0` or if `byteLength / 4` does not equal `dimension`. Read each 4-byte little-endian Float32 to obtain the float array.
 
 Example (JavaScript) — encode:
 
@@ -120,6 +121,7 @@ function base64ToFloats32(b64) {
             "ext": {
               "ver": "1.0.0",
               "vector": "UQaePwAAIMAAAAAA2w9JQLbmQEZbcgG5FK4pQvD/ecS9N4Y1ZCBxSQ==",
+              "dimension": 10,
               "model": "sbert-mini-ctx-001",
               "type": [1, 2]
             }
@@ -146,6 +148,7 @@ function base64ToFloats32(b64) {
             "ext": {
               "ver": "1.0.0",
               "vector": "UQaePwAAIMAAAAAA2w9JQLbmQEZbcgG5FK4pQvD/ecS9N4Y1ZCBxSQ==",
+              "dimension": 10,
               "model": "sbert-mini-ctx-001",
               "type": [1, 2]
             }
@@ -161,6 +164,7 @@ function base64ToFloats32(b64) {
             "ext": {
               "ver": "1.0.0",
               "vector": "AAAAP5qZGT/NzMy9",
+              "dimension": 3,
               "model": "contextual-model-v1",
               "type": [2]
             }
@@ -172,11 +176,11 @@ function base64ToFloats32(b64) {
 }
 ```
 
-*Note: Real embeddings are typically 256–1024 Float32 values; the longer `vector` example encodes 10 floats. Length in floats is always `(Base64-decoded byte length) / 4`.*
+*Note: Real embeddings are typically 256–1024 Float32 values; the longer `vector` example encodes 10 floats. `dimension` must match the number of Float32 values encoded in `vector` (i.e. decoded byte length ÷ 4).*
 
 ## Implementation Notes
 
-- **Vector length**: Embeddings typically contain 256–1024 Float32 values. Implementers should agree on expected length and vector-space alignment when interoperating across producers and consumers. Consumers derive length from the decoded payload and should reject payloads whose byte length is not a multiple of 4.
+- **Vector length**: Embeddings typically contain 256–1024 Float32 values. Implementers should agree on expected length and vector-space alignment when interoperating across producers and consumers. Consumers should validate that `dimension` equals `(Base64-decoded byte length) / 4` and reject invalid payloads.
 - **Privacy**: Embeddings encode semantic meaning without exposing raw user data. Implementers must ensure appropriate consent and data handling policies are followed.
 - **Model interoperability**: The `model` field enables downstream systems to select compatible embeddings. Similarity computations are meaningful only within the same model/vector space.
 
