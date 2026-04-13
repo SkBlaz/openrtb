@@ -47,9 +47,9 @@ The `aa` object carries the embedding vector and metadata so that buyers can int
 | :-- | :-- | :-- |
 | `ver` | string | Specification version for embedding schema compatibility (e.g., "1.0.0"). |
 | `vector` | string | Base64-encoded embedding. The binary payload is Float32 values packed as [IEEE 754](https://standards.ieee.org/standard/754_2019.html) binary32 in **little-endian** byte order (4 bytes per value), concatenated, then standard Base64 (RFC 4648). |
-| `dimension` | number | Number of Float32 values in the embedding. Must equal `(Base64-decoded byte length) / 4`. The decoded byte length must be divisible by 4. This field allows a DSP (or other consumer) to perform **rapid validation**—for example, by comparing `dimension` to an expected length for a given `model` before or without fully decoding the vector. |
+| `dimension` | integer | Number of Float32 values in the embedding. Must equal `(Base64-decoded byte length) / 4`. The decoded byte length must be divisible by 4. This field allows a DSP (or other consumer) to perform **rapid validation**—for example, by comparing `dimension` to an expected length for a given `model` before or without fully decoding the vector. |
 | `model` | string | Model identifier that produced the embedding (e.g., "sbert-mini-ctx-001"). |
-| `type` | number array | Embedding type(s): 1 = identity, 2 = contextual, 3 = reinforcement. An entry may encode multiple signal types. |
+| `type` | integer array | Embedding type(s): 1 = identity, 2 = contextual, 3 = reinforcement. An entry may encode multiple signal types. |
 
 #### Vector encoding
 
