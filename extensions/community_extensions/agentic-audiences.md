@@ -10,7 +10,7 @@ Rather than exchanging raw data points or text descriptions, Agentic Audiences l
 
 ## Extension Scope
 
-Embeddings are conveyed in `BidRequest.user.data` using the existing `Data` and `Segment` objects. Each data provider contributes one `Data` object whose `segment` array contains one or more embedding entries. Each segment is a standard OpenRTB Segment with `id` and `name` for identification. The `Segment.ext` object carries the embedding and metadata that downstream systems need to interpret, filter, and use the vector—for example, for similarity matching or model-specific processing.
+Embeddings are conveyed in `BidRequest.user.data` using the existing `Data` and `Segment` objects. Each data provider contributes one `Data` object whose `segment` array contains one or more embedding entries. Each segment is a standard OpenRTB Segment with `id` and `name` for identification. The **`aa`** envelope object at `Segment.ext.aa` carries the embedding and metadata that downstream systems need to interpret, filter, and use the vector—for example, for similarity matching or model-specific processing.
 
 ## Specification
 
@@ -23,25 +23,33 @@ Per the OpenRTB 2.x API, the `Data` object array in `user.data` allows additiona
 
 ### Object: `Data.segment` (Agentic Audiences Segment Extension)
 
-When conveying Agentic Audiences embeddings, each element in the `segment` array is a standard OpenRTB Segment object. The segment uses `id` and `name` for identification, with Agentic Audiences–specific attributes in `ext`:
+When conveying Agentic Audiences embeddings, each element in the `segment` array is a standard OpenRTB Segment object. The segment uses `id` and `name` for identification, with Agentic Audiences–specific attributes under `ext.aa`:
 
 | Attribute | Type | Description |
 | :-- | :-- | :-- |
 | `id` | string | ID of the data segment (standard Segment field). |
 | `name` | string | Descriptive name for the segment (standard Segment field). |
-| `ext` | object | Extension object containing Agentic Audiences attributes (see below). |
+| `ext` | object | Extension object; Agentic Audiences fields are grouped in `ext.aa` (see below). |
 
-### Object: `Segment.ext` (Agentic Audiences)
+### Object: `Segment.ext` (Agentic Audiences placement)
 
-The `Segment.ext` object extends the standard Segment with Agentic Audiences attributes. It carries the embedding vector and metadata so that buyers can interpret the segment (e.g., by model or signal type), validate compatibility, and use the vector for scoring or similarity operations.
+The standard `Segment.ext` object may contain keys from multiple extensions. For Agentic Audiences, all fields defined in this specification are nested under the **`aa`** property so they do not collide with other `ext` extensions.
+
+| Attribute | Type | Description |
+| :-- | :-- | :-- |
+| `aa` | object | Agentic Audiences envelope containing the embedding and metadata (see `Segment.ext.aa` below). |
+
+### Object: `Segment.ext.aa` (Agentic Audiences envelope)
+
+The `aa` object carries the embedding vector and metadata so that buyers can interpret the segment (e.g., by model or signal type), validate compatibility, and use the vector for scoring or similarity operations.
 
 | Attribute | Type | Description |
 | :-- | :-- | :-- |
 | `ver` | string | Specification version for embedding schema compatibility (e.g., "1.0.0"). |
 | `vector` | string | Base64-encoded embedding. The binary payload is Float32 values packed as [IEEE 754](https://standards.ieee.org/standard/754_2019.html) binary32 in **little-endian** byte order (4 bytes per value), concatenated, then standard Base64 (RFC 4648). |
-| `dimension` | number | Number of Float32 values in the embedding. Must equal `(Base64-decoded byte length) / 4`. The decoded byte length must be divisible by 4. This field allows a DSP (or other consumer) to perform **rapid validation**—for example, by comparing `dimension` to an expected length for a given `model` before or without fully decoding the vector. |
+| `dimension` | integer | Number of Float32 values in the embedding. Must equal `(Base64-decoded byte length) / 4`. The decoded byte length must be divisible by 4. This field allows a DSP (or other consumer) to perform **rapid validation**—for example, by comparing `dimension` to an expected length for a given `model` before or without fully decoding the vector. |
 | `model` | string | Model identifier that produced the embedding (e.g., "sbert-mini-ctx-001"). |
-| `type` | number array | Embedding type(s): 1 = identity, 2 = contextual, 3 = reinforcement. An entry may encode multiple signal types. |
+| `type` | integer array | Embedding type(s): 1 = identity, 2 = contextual, 3 = reinforcement. An entry may encode multiple signal types. |
 
 #### Vector encoding
 
@@ -119,11 +127,13 @@ function base64ToFloats32(b64) {
             "id": "some-id",
             "name": "descriptive-name",
             "ext": {
-              "ver": "1.0.0",
-              "vector": "UQaePwAAIMAAAAAA2w9JQLbmQEZbcgG5FK4pQvD/ecS9N4Y1ZCBxSQ==",
-              "dimension": 10,
-              "model": "sbert-mini-ctx-001",
-              "type": [1, 2]
+              "aa": {
+                "ver": "1.0.0",
+                "vector": "UQaePwAAIMAAAAAA2w9JQLbmQEZbcgG5FK4pQvD/ecS9N4Y1ZCBxSQ==",
+                "dimension": 10,
+                "model": "sbert-mini-ctx-001",
+                "type": [1, 2]
+              }
             }
           }
         ]
@@ -146,11 +156,13 @@ function base64ToFloats32(b64) {
             "id": "seg-1",
             "name": "identity-contextual",
             "ext": {
-              "ver": "1.0.0",
-              "vector": "UQaePwAAIMAAAAAA2w9JQLbmQEZbcgG5FK4pQvD/ecS9N4Y1ZCBxSQ==",
-              "dimension": 10,
-              "model": "sbert-mini-ctx-001",
-              "type": [1, 2]
+              "aa": {
+                "ver": "1.0.0",
+                "vector": "UQaePwAAIMAAAAAA2w9JQLbmQEZbcgG5FK4pQvD/ecS9N4Y1ZCBxSQ==",
+                "dimension": 10,
+                "model": "sbert-mini-ctx-001",
+                "type": [1, 2]
+              }
             }
           }
         ]
@@ -162,11 +174,13 @@ function base64ToFloats32(b64) {
             "id": "seg-2",
             "name": "contextual",
             "ext": {
-              "ver": "1.0.0",
-              "vector": "AAAAP5qZGT/NzMy9",
-              "dimension": 3,
-              "model": "contextual-model-v1",
-              "type": [2]
+              "aa": {
+                "ver": "1.0.0",
+                "vector": "AAAAP5qZGT/NzMy9",
+                "dimension": 3,
+                "model": "contextual-model-v1",
+                "type": [2]
+              }
             }
           }
         ]
